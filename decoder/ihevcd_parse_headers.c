@@ -1460,7 +1460,6 @@ IHEVCD_ERROR_T ihevcd_parse_sps(codec_t *ps_codec)
 
     BITS_PARSE("sps_extension_flag", value, ps_bitstrm, 1);
 
-
     {
         WORD32 numerator;
         WORD32 ceil_offset;
