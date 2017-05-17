@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_ac20ec49",
+        "filename": "decoder/ihevcd_parse_headers.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 1466,
+      "author": {
+        "id": 16914
+      },
+      "writtenOn": "2017-05-17T23:15:15Z",
+      "side": 1,
+      "message": "This modification is from https://android.googlesource.com/platform/external/libhevc/+/45c97f878bee15cd97262fe7f57ecea71990fed7%5E%21/#F0\nIt should be split out as a separate CR",
+      "range": {
+        "startLine": 1463,
+        "startChar": 0,
+        "endLine": 1466,
+        "endChar": 5
+      },
+      "revId": "dc35144343ebc8eb49c5d991a2d5f14af93366cb",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
