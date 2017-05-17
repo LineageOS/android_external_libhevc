@@ -643,6 +643,9 @@ static WORD32 ihevcd_parse_hrd_parameters(bitstrm_t *ps_bitstrm,
         if(!ps_hrd->au1_low_delay_hrd_flag[i])
             UEV_PARSE("cpb_cnt_minus1[ i ]", ps_hrd->au1_cpb_cnt_minus1[i], ps_bitstrm);
 
+        if(ps_hrd->au1_cpb_cnt_minus1[i] >= (MAX_CPB_CNT - 1))
+            return IHEVCD_INVALID_PARAMETER;
+
         if(ps_hrd->u1_nal_hrd_parameters_present_flag)
             ihevcd_parse_sub_layer_hrd_parameters(ps_bitstrm,
                                                   &ps_hrd->as_sub_layer_hrd_params[i],
@@ -818,7 +821,10 @@ static WORD32 ihevcd_parse_vui_parameters(bitstrm_t *ps_bitstrm,
 
         BITS_PARSE("vui_hrd_parameters_present_flag", ps_vui->u1_vui_hrd_parameters_present_flag, ps_bitstrm, 1);
         if(ps_vui->u1_vui_hrd_parameters_present_flag)
-            ihevcd_parse_hrd_parameters(ps_bitstrm, &ps_vui->s_vui_hrd_parameters, 1, sps_max_sub_layers_minus1);
+        {
+            ret = ihevcd_parse_hrd_parameters(ps_bitstrm, &ps_vui->s_vui_hrd_parameters, 1, sps_max_sub_layers_minus1);
+            RETURN_IF((ret != (IHEVCD_ERROR_T)IHEVCD_SUCCESS), ret);
+        }
     }
 
     BITS_PARSE("bitstream_restriction_flag", ps_vui->u1_bitstream_restriction_flag, ps_bitstrm, 1);
@@ -1302,6 +1308,12 @@ IHEVCD_ERROR_T ihevcd_parse_sps(codec_t *ps_codec)
 
 
     ps_sps = (ps_codec->s_parse.ps_sps_base + MAX_SPS_CNT - 1);
+    /* Reset SPS to zero */
+    {
+        WORD16 *pi2_scaling_mat = ps_sps->pi2_scaling_mat;
+        memset(ps_sps, 0, sizeof(sps_t));
+        ps_sps->pi2_scaling_mat = pi2_scaling_mat;
+    }
     ps_sps->i1_sps_id = sps_id;
     ps_sps->i1_vps_id = vps_id;
     ps_sps->i1_sps_max_sub_layers = sps_max_sub_layers;
@@ -1555,9 +1567,12 @@ IHEVCD_ERROR_T ihevcd_parse_sps(codec_t *ps_codec)
     ps_sps->i1_vui_parameters_present_flag = value;
 
     if(ps_sps->i1_vui_parameters_present_flag)
-        ihevcd_parse_vui_parameters(ps_bitstrm,
-                                    &ps_sps->s_vui_parameters,
-                                    ps_sps->i1_sps_max_sub_layers - 1);
+    {
+        ret = ihevcd_parse_vui_parameters(ps_bitstrm,
+                                          &ps_sps->s_vui_parameters,
+                                          ps_sps->i1_sps_max_sub_layers - 1);
+        RETURN_IF((ret != (IHEVCD_ERROR_T)IHEVCD_SUCCESS), ret);
+    }
 
     BITS_PARSE("sps_extension_flag", value, ps_bitstrm, 1);
 
@@ -1855,6 +1870,19 @@ IHEVCD_ERROR_T ihevcd_parse_pps(codec_t *ps_codec)
     BITS_PARSE("tiles_enabled_flag", value, ps_bitstrm, 1);
     ps_pps->i1_tiles_enabled_flag = value;
 
+    /* When tiles are enabled and width or height is >= 4096,
+     * CTB Size should at least be 32. 16x16 CTBs can result
+     * in tile position greater than 255 for 4096,
+     * which decoder does not support.
+     */
+    if((ps_pps->i1_tiles_enabled_flag) &&
+                    (ps_sps->i1_log2_ctb_size == 4) &&
+                    ((ps_sps->i2_pic_width_in_luma_samples >= 4096) ||
+                    (ps_sps->i2_pic_height_in_luma_samples >= 4096)))
+    {
+        return IHEVCD_INVALID_HEADER;
+    }
+
     BITS_PARSE("entropy_coding_sync_enabled_flag", value, ps_bitstrm, 1);
     ps_pps->i1_entropy_coding_sync_enabled_flag = value;
 
@@ -2031,6 +2059,9 @@ IHEVCD_ERROR_T ihevcd_parse_pps(codec_t *ps_codec)
     ps_pps->i1_slice_header_extension_present_flag = value;
     /* Not present in HM */
     BITS_PARSE("pps_extension_flag", value, ps_bitstrm, 1);
+
+    if((UWORD8 *)ps_bitstrm->pu4_buf > ps_bitstrm->pu1_buf_max)
+        return IHEVCD_INVALID_PARAMETER;
 
     ps_codec->i4_pps_done = 1;
     return ret;
