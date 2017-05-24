@@ -257,10 +257,11 @@ IHEVCD_ERROR_T ihevcd_parse_slice_header(codec_t *ps_codec,
     {
         pps_t *ps_pps_ref = ps_codec->ps_pps_base;
         while(0 == ps_pps_ref->i1_pps_valid)
+        {
             ps_pps_ref++;
-
-        if((ps_pps_ref - ps_codec->ps_pps_base >= MAX_PPS_CNT - 1))
-            return IHEVCD_INVALID_HEADER;
+            if((ps_pps_ref - ps_codec->ps_pps_base >= MAX_PPS_CNT - 1))
+                return IHEVCD_INVALID_HEADER;
+        }
 
         ihevcd_copy_pps(ps_codec, pps_id, ps_pps_ref->i1_pps_id);
     }
@@ -861,6 +862,9 @@ IHEVCD_ERROR_T ihevcd_parse_slice_header(codec_t *ps_codec,
     }
 
     ihevcd_bits_flush_to_byte_boundary(ps_bitstrm);
+
+    if((UWORD8 *)ps_bitstrm->pu4_buf > ps_bitstrm->pu1_buf_max)
+        return IHEVCD_INVALID_PARAMETER;
 
     {
         dpb_mgr_t *ps_dpb_mgr = (dpb_mgr_t *)ps_codec->pv_dpb_mgr;
