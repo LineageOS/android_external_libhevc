@@ -318,7 +318,7 @@ WORD32 ihevcd_get_tu_data_size(WORD32 num_luma_samples)
     tu_data_size += (num_ctb + 1) * sizeof(WORD32);
 
     /* Size for storing tu map */
-    tu_data_size += num_luma_tu * sizeof(UWORD8);
+    tu_data_size += num_tu * sizeof(UWORD8);
 
     /* Size for storing tu_t for each TU */
     tu_data_size += num_tu * sizeof(tu_t);
